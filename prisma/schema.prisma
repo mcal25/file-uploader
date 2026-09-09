@@ -5,9 +5,56 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+model User {
+  id       Int      @id @default(autoincrement())
+  username String   @unique
+  email    String   @unique
+  password String
+  folders  Folder[]
+  files    File[]
+
+  @@map("users")
+}
+
+model Folder {
+  id        Int      @id @default(autoincrement())
+  name      String
+  userId    Int      @map("user_id")
+  parentId  Int?     @map("parent_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent   Folder?  @relation("FolderToFolder", fields: [parentId], references: [id], onDelete: Cascade)
+  children Folder[] @relation("FolderToFolder")
+  files    File[]
+
+  @@map("folders")
+}
+
+model File {
+  id           Int      @id @default(autoincrement())
+  name         String
+  link         String
+  size         Int
+  dateUploaded DateTime @default(now()) @map("date_uploaded")
+  userId       Int      @map("user_id")
+  folderId     Int?     @map("folder_id")
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folder Folder? @relation(fields: [folderId], references: [id], onDelete: Cascade)
+
+  @@map("files")
+}
+
+model Session {
+  id        String   @id
+  sid       String   @unique
+  data      String
+  expiresAt DateTime
 }
