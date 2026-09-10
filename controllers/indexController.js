@@ -4,7 +4,7 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 
 export async function loadIndex(req, res) {
-  console.log("PP obj", req.user);
+  console.log("passport object:", req.user);
   res.render("index", { user: req.user });
 }
 
@@ -49,6 +49,10 @@ export async function doLogout(req, res, next) {
     }
     res.redirect('/');
   }));
+}
+
+export async function loadFiles(req, res, next) {
+  res.render('files');
 }
 
 passport.use(
