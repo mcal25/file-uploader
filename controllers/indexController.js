@@ -4,7 +4,8 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 
 export async function loadIndex(req, res) {
-  res.render("index");
+  console.log("PP obj", req.user);
+  res.render("index", { user: req.user });
 }
 
 export async function loadSignup(req, res) {
@@ -29,15 +30,37 @@ export async function submitSignup(req, res, next) {
   }
 }
 
-passport.use(
-  new LocalStrategy(async (un, pw, done) => {
-    try {
-      const user = await prisma.user.findUnique({ where: username == un });
-      const match = await bcrypt.compare(pw, user.password);
+export async function loadLogin(req, res) {
+  res.render("login");
+}
 
+export async function submitLogin(req, res, next) {
+  passport.authenticate("local", {
+    successRedirect: "/",
+    // failureRedirect: "/login",
+    // failureMessage: true,
+  })(req, res, next);
+}
+
+export async function doLogout(req, res, next) {
+  req.logout((err => {
+    if (err) {
+      return next(err);
+    }
+    res.redirect('/');
+  }));
+}
+
+passport.use(
+  new LocalStrategy(async (username, password, done) => {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { username: username },
+      });
       if (!user) {
         return done(null, false, { message: "Incorrect username" });
       }
+      const match = await bcrypt.compare(password, user.password);
       if (!match) {
         return done(null, false, { message: "Incorrect password" });
       }
@@ -45,7 +68,7 @@ passport.use(
     } catch (err) {
       return done(err);
     }
-  }),
+  })
 );
 
 passport.serializeUser((user, done) => {
@@ -54,7 +77,7 @@ passport.serializeUser((user, done) => {
 
 passport.deserializeUser(async (id, done) => {
   try {
-    const user = await prisma.user.findUnique({ where: id == user.id });
+    const user = await prisma.user.findUnique({ where: { id: id } });
     done(null, user);
   } catch (err) {
     done(err);

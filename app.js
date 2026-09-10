@@ -47,6 +47,11 @@ app.use('/signup', indexRouter);
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
 
+app.use((req, res, next) => {
+    res.locals.currentUser = req.user
+    next();
+});
+
 app.listen(3000, (error) => {
     if (error) {
         throw error;
