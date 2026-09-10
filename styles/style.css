@@ -1,0 +1,11 @@
+.folder-container {
+    display: flex;
+}
+
+.folder {
+    height: 100px;
+    width: 100px;
+    border: 3px solid black;
+    margin: 5px;
+    padding: 5px;
+}

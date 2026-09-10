@@ -12,5 +12,3 @@ indexRouter.get('/login', loadLogin);
 indexRouter.post('/login', submitLogin);
 
 indexRouter.get('/logout', doLogout);
-
-indexRouter.get('/files', loadFiles);

@@ -42,10 +42,10 @@ app.use(
 app.use(passport.session());
 app.use(express.urlencoded({ extended: true }));
 
+app.use(express.static('styles')); 
+
 app.use('/', indexRouter);
-app.use('/signup', indexRouter);
 app.use('/files', filesRouter);
-app.use('/upload', filesRouter)
 
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");

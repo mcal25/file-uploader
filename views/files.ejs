@@ -4,15 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Your Drive</title>
+    <link rel="stylesheet" href="/style.css">
 </head>
 <body>
+    <a href="/">home</a>
     <h1>Your Drive</h1>
-    <form action="/upload" enctype="multipart/form-data" method="POST">
+    <form action="/files/upload" enctype="multipart/form-data" method="POST">
         <div class="from-group">
             <input type="file" class="form-control-file" name="uploaded_file">
             <input type="text" class="form-control" placeholder="placeholder" name="test_name">
             <input type="submit" value="submit">
         </div>
     </form>
+    <div class="folder-container">
+        <% for (let i = 0; i < folders.length; i++) { %>
+            <div class="folder">
+                <p><%= folders[i].name %></p>
+            </div>
+        <% } %>        
+    </div>
 </body>
 </html>
