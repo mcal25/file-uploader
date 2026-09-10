@@ -1,10 +1,24 @@
 import { Router } from "express";
 import multer from "multer";
+import crypto from 'crypto';
 
 export const filesRouter = Router();
-const upload = multer({ dest: './uploads/' });
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, './uploads/')
+  },
+  filename: function (req, file, cb) {
+    crypto.randomBytes(2, function (err, raw) {
+      if (err) return cb(err)
+      cb(null,  raw.toString('hex') + '-' + file.originalname)
+    })
+  }
+});
+
+const upload = multer({ storage: storage });
 
 filesRouter.post('/', upload.single('uploaded_file'), (req, res) => {
-    res.send("File uploaded!")
+    res.json(req.file);
     console.log('Uploaded successfully!');
 } )
