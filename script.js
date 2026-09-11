@@ -17,7 +17,7 @@ async function main() {
           files: [
             {
               name: "Resume.pdf",
-              link: "https://storage.provider.com/files/resume.pdf",
+              link: "https://storage.provider.com/folders/resume.pdf",
               size: 102400,
             },
           ],
@@ -27,7 +27,7 @@ async function main() {
               files: [
                 {
                   name: "Project_Spec.docx",
-                  link: "https://storage.provider.com/files/spec.docx",
+                  link: "https://storage.provider.com/folders/spec.docx",
                   size: 512000,
                 },
               ],
@@ -39,7 +39,7 @@ async function main() {
           files: [
             {
               name: "avatar.png",
-              link: "https://storage.provider.com/files/avatar.png",
+              link: "https://storage.provider.com/folders/avatar.png",
               size: 2048000,
             },
           ],
@@ -48,7 +48,7 @@ async function main() {
       rootFiles: [
         {
           name: "notes.txt",
-          link: "https://storage.provider.com/files/notes.txt",
+          link: "https://storage.provider.com/folders/notes.txt",
           size: 1024,
         },
       ],
@@ -63,7 +63,7 @@ async function main() {
           files: [
             {
               name: "HousePlan_v1.dwg",
-              link: "https://storage.provider.com/files/plan1.dwg",
+              link: "https://storage.provider.com/folders/plan1.dwg",
               size: 15485760,
             },
           ],
@@ -72,7 +72,7 @@ async function main() {
       rootFiles: [
         {
           name: "Invoice_001.pdf",
-          link: "https://storage.provider.com/files/inv001.pdf",
+          link: "https://storage.provider.com/folders/inv001.pdf",
           size: 204800,
         },
       ],
@@ -87,7 +87,7 @@ async function main() {
           files: [
             {
               name: "Intro_Song.mp3",
-              link: "https://storage.provider.com/files/track1.mp3",
+              link: "https://storage.provider.com/folders/track1.mp3",
               size: 4194304,
             },
           ],
@@ -97,7 +97,7 @@ async function main() {
               files: [
                 {
                   name: "Take_1.wav",
-                  link: "https://storage.provider.com/files/take1.wav",
+                  link: "https://storage.provider.com/folders/take1.wav",
                   size: 31457280,
                 },
               ],
@@ -115,12 +115,12 @@ async function main() {
       rootFiles: [
         {
           name: "DesignSystem.fig",
-          link: "https://storage.provider.com/files/design.fig",
+          link: "https://storage.provider.com/folders/design.fig",
           size: 8388608,
         },
         {
           name: "BrandBook.pdf",
-          link: "https://storage.provider.com/files/brand.pdf",
+          link: "https://storage.provider.com/folders/brand.pdf",
           size: 5242880,
         },
       ],
@@ -139,7 +139,7 @@ async function main() {
               files: [
                 {
                   name: "db_backup.sql",
-                  link: "https://storage.provider.com/files/db.sql",
+                  link: "https://storage.provider.com/folders/db.sql",
                   size: 104857600,
                 },
               ],
@@ -150,7 +150,7 @@ async function main() {
       rootFiles: [
         {
           name: "todo.md",
-          link: "https://storage.provider.com/files/todo.md",
+          link: "https://storage.provider.com/folders/todo.md",
           size: 512,
         },
       ],

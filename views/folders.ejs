@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Drive</title>
+    <!-- Modern font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="/styles/style.css">
+
+</head>
+<body>
+    <a href="/">Home</a>
+    <h1>Your Drive</h1>
+    <h3>Upload</h3>
+
+    <form action="/folders/upload" enctype="multipart/form-data" method="POST">
+        <div class="form-group">
+            <input type="file" class="form-control-file" name="uploaded_file">
+            <input type="text" class="form-control" placeholder="placeholder" name="test_name">
+            <input id="file-upload-submit" type="submit" value="submit">
+        </div>
+    </form>
+
+    <hr />
+
+    <h3>Folders</h3>
+    <nav class="breadcrumbs">
+        <br>
+        <a href="/folders">Root</a>
+
+        <% breadcrumbs.forEach((crumb, index) => { %>
+            <span> / </span>
+            <% if (index === breadcrumbs.length - 1) { %>
+                <strong><%= crumb.name %></strong>
+            <% } else { %>
+                <a href="/folders?folderId=<%= crumb.id %>"><%= crumb.name %></a>
+            <% } %>
+        <% }) %>
+
+        <% if (breadcrumbs.length > 0) { %>
+            <% const parentFolder = breadcrumbs[breadcrumbs.length - 2]; %>
+            <% if (parentFolder) { %>
+                <a href="/folders?folderId=<%= parentFolder.id %>"> ⬆️ Back Up</a>
+            <% } else { %>
+                <a href="/folders"> ⬆️ Back to Root</a>
+            <% } %>
+        <% } %>
+    </nav>
+    <br>
+    <div class="folder-grid">
+    <% if (folders.length === 0) { %>
+        <p>No subfolders here.</p>
+    <% } %>
+    <% folders.forEach(folder => { %>
+        <div class="folder-card item-node" 
+             data-type="folders" 
+             data-id="<%= folder.id %>" 
+             data-name="<%= folder.name %>">
+            <a href="/folders?folderId=<%= folder.id %>">
+                📁 <%= folder.name %>
+            </a>
+            <button class="menu-btn" title="More actions">⋮</button>
+        </div>
+    <% }) %>
+    </div>
+
+    <hr />
+
+    <!-- Files List -->
+    <h3>Files</h3>
+    <div class="file-grid">
+    <% if (files.length === 0) { %>
+        <p>No files in this folder.</p>
+    <% } %>
+    <% files.forEach(file => { %>
+        <div class="file-card item-node" 
+             data-type="files" 
+             data-id="<%= file.id %>" 
+             data-name="<%= file.name %>">
+            <span>📄 <a href="<%= file.link %>" target="_blank"><%= file.name %></a></span>
+            <button class="menu-btn" title="More actions">⋮</button>
+        </div>
+    <% }) %>
+    </div>
+
+    <!-- Reusable Context Menu -->
+    <div id="context-menu" class="context-menu">
+        <ul>
+            <li>
+                <button id="menu-rename">✏️ Rename</button>
+            </li>
+            <hr />
+            <li>
+                <button id="menu-delete" class="danger">🗑️ Delete</button>
+            </li>
+        </ul>
+    </div>
+
+    <script>
+        const contextMenu = document.getElementById('context-menu');
+        let activeItem = null; // Stores target item data { id, type, name }
+
+        function openContextMenu(e, itemNode) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            activeItem = {
+                id: itemNode.dataset.id,
+                type: itemNode.dataset.type,
+                name: itemNode.dataset.name
+            };
+
+            // Calculate positioning to keep inside viewport
+            const menuWidth = 160;
+            const menuHeight = 90;
+            let x = e.clientX;
+            let y = e.clientY;
+
+            if (x + menuWidth > window.innerWidth) x = window.innerWidth - menuWidth - 10;
+            if (y + menuHeight > window.innerHeight) y = window.innerHeight - menuHeight - 10;
+
+            contextMenu.style.left = `${x}px`;
+            contextMenu.style.top = `${y}px`;
+            contextMenu.style.display = 'block';
+        }
+
+        function closeContextMenu() {
+            contextMenu.style.display = 'none';
+            activeItem = null;
+        }
+
+        // Attach listeners to all folder/file items
+        document.querySelectorAll('.item-node').forEach(item => {
+            // Right-click event
+            item.addEventListener('contextmenu', (e) => openContextMenu(e, item));
+
+            // Triple-dot click event
+            const btn = item.querySelector('.menu-btn');
+            if (btn) {
+                btn.addEventListener('click', (e) => openContextMenu(e, item));
+            }
+        });
+
+        // Close menu on click outside or escape key
+        document.addEventListener('click', closeContextMenu);
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeContextMenu();
+        });
+
+        // Rename Action
+        document.getElementById('menu-rename').addEventListener('click', () => {
+            if (!activeItem) return;
+            const newName = prompt(`Rename ${activeItem.name}:`, activeItem.name);
+            
+            if (newName && newName !== activeItem.name) {
+                // Submit POST/PUT to your Express route (e.g. POST /folders/100/rename)
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `/${activeItem.type}/${activeItem.id}/rename`;
+                
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'name';
+                input.value = newName;
+                
+                form.appendChild(input);
+                document.body.appendChild(form);
+                form.submit();
+            }
+            closeContextMenu();
+        });
+
+        // Delete Action
+        document.getElementById('menu-delete').addEventListener('click', () => {
+            if (!activeItem) return;
+            if (confirm(`Are you sure you want to delete "${activeItem.name}"?`)) {
+                // Submit POST to your Express route (e.g. POST /folders/15/delete)
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `/${activeItem.type}/${activeItem.id}/delete`;
+                
+                document.body.appendChild(form);
+                form.submit();
+            }
+            closeContextMenu();
+        });
+    </script>
+</body>
+</html>

@@ -1,11 +1,11 @@
 import { Router } from "express";
 import multer from "multer";
 import crypto from 'crypto';
-import { loadFiles } from "../controllers/filesController.js";
+import { loadFiles } from "../controllers/foldersController.js";
 
-export const filesRouter = Router();
+export const foldersRouter = Router();
 
-filesRouter.get('/', loadFiles);
+foldersRouter.get('/', loadFiles);
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -21,7 +21,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-filesRouter.post('/upload', upload.single('uploaded_file'), (req, res) => {
+foldersRouter.post('/upload', upload.single('uploaded_file'), (req, res) => {
     res.json(req.file);
     console.log('Uploaded successfully!');
 } )

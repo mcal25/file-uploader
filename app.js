@@ -12,7 +12,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 import { PrismaSessionStore } from '@quixo3/prisma-session-store';
 import { indexRouter } from './routes/indexRouter.js';
-import { filesRouter } from './routes/filesRouter.js';
+import { foldersRouter } from './routes/foldersRouter.js';
 
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
@@ -42,10 +42,10 @@ app.use(
 app.use(passport.session());
 app.use(express.urlencoded({ extended: true }));
 
-app.use(express.static('styles')); 
+app.use('/styles', express.static('styles')); 
 
 app.use('/', indexRouter);
-app.use('/files', filesRouter);
+app.use('/folders', foldersRouter);
 
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");

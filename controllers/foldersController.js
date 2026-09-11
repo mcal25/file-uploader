@@ -35,7 +35,7 @@ export async function loadFiles(req, res, next) {
 
     breadcrumbs.reverse();
 
-    res.render("files", { 
+    res.render("folders", { 
       folders, 
       files, 
       breadcrumbs, 
