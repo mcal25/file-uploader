@@ -7,8 +7,10 @@
     <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-    <a href="/">home</a>
+    <a href="/">Home</a>
     <h1>Your Drive</h1>
+    <h3>Upload</h3>
+
     <form action="/files/upload" enctype="multipart/form-data" method="POST">
         <div class="from-group">
             <input type="file" class="form-control-file" name="uploaded_file">
@@ -16,12 +18,59 @@
             <input type="submit" value="submit">
         </div>
     </form>
-    <div class="folder-container">
-        <% for (let i = 0; i < folders.length; i++) { %>
-            <div class="folder">
-                <p><%= folders[i].name %></p>
-            </div>
-        <% } %>        
+
+    <hr />
+
+    <h3>Folders</h3>
+    <nav class="breadcrumbs">
+        <br>
+        <a href="/files">Root</a>
+
+        <% breadcrumbs.forEach((crumb, index) => { %>
+            <span> / </span>
+            <% if (index === breadcrumbs.length - 1) { %>
+                <strong><%= crumb.name %></strong>
+            <% } else { %>
+                <a href="/files?folderId=<%= crumb.id %>"><%= crumb.name %></a>
+            <% } %>
+        <% }) %>
+
+        <% if (breadcrumbs.length > 0) { %>
+            <% const parentFolder = breadcrumbs[breadcrumbs.length - 2]; %>
+            <% if (parentFolder) { %>
+                <a href="/files?folderId=<%= parentFolder.id %>"> ⬆️ Back Up</a>
+            <% } else { %>
+                <a href="/files"> ⬆️ Back to Root</a>
+            <% } %>
+        <% } %>
+    </nav>
+    <br>
+    <div class="folder-grid">
+    <% if (folders.length === 0) { %>
+        <p>No subfolders here.</p>
+    <% } %>
+    <% folders.forEach(folder => { %>
+        <div class="folder-card">
+            <a href="/files?folderId=<%= folder.id %>">
+                📁 <%= folder.name %>
+            </a>
+        </div>
+    <% }) %>
+    </div>
+
+    <hr />
+
+    <!-- Files List -->
+    <h3>Files</h3>
+    <div class="file-grid">
+    <% if (files.length === 0) { %>
+        <p>No files in this folder.</p>
+    <% } %>
+    <% files.forEach(file => { %>
+        <div class="file-card">
+            📄 <a href="<%= file.link %>" target="_blank"><%= file.name %></a>
+        </div>
+    <% }) %>
     </div>
 </body>
 </html>
