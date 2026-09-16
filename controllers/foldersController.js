@@ -1,10 +1,128 @@
 import { prisma } from "../lib/prisma.js";
-import bcrypt from "bcryptjs";
-import passport from "passport";
-import { Strategy as LocalStrategy } from "passport-local";
 import multer from "multer";
+import crypto from "crypto";
+import path from "node:path";
+import { unlink } from "node:fs/promises";
 
-const upload = multer({ dest: "../uploads/" });
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, './uploads/');
+  },
+  filename: function (req, file, cb) {
+    crypto.randomBytes(2, function (err, raw) {
+      if (err) return cb(err);
+      cb(null, raw.toString('hex') + '-' + file.originalname);
+    });
+  }
+});
+
+export const upload = multer({ storage });
+
+function getItemModel(itemType) {
+  return itemType === 'folders' ? prisma.folder :
+    itemType === 'files' ? prisma.file : null;
+}
+
+function redirectToFolder(res, folderId) {
+  res.redirect(folderId === null ? '/folders' : `/folders?folderId=${folderId}`);
+}
+
+function redirectToContainingFolder(res, item) {
+  const folderId = item.parentId !== undefined ? item.parentId : item.folderId;
+  redirectToFolder(res, folderId);
+}
+
+async function removeUploadedFile(link) {
+  if (!link?.startsWith('/uploads/')) return;
+
+  try {
+    await unlink(path.join('uploads', path.basename(link)));
+  } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+  }
+}
+
+async function removeUploadedFileFromRequest(req) {
+  if (req.file) {
+    await removeUploadedFile(`/uploads/${req.file.filename}`);
+  }
+}
+
+export async function handleUpload(req, res, next) {
+  try {
+    if (!req.file) {
+      return res.status(400).send('A file is required.');
+    }
+
+    const folderId = req.body.folderId ? Number.parseInt(req.body.folderId, 10) : null;
+
+    if (folderId !== null && !Number.isInteger(folderId)) {
+      await removeUploadedFileFromRequest(req);
+      return res.status(400).send('A valid folder is required.');
+    }
+
+    if (folderId !== null) {
+      const folder = await prisma.folder.findFirst({
+        where: { id: folderId, userId: req.user.id },
+        select: { id: true }
+      });
+
+      if (!folder) {
+        await removeUploadedFileFromRequest(req);
+        return res.status(404).send('Folder not found.');
+      }
+    }
+
+    await prisma.file.create({
+      data: {
+        name: req.body.name?.trim() || req.file.originalname,
+        link: `/uploads/${req.file.filename}`,
+        size: req.file.size,
+        userId: req.user.id,
+        folderId
+      }
+    });
+
+    redirectToFolder(res, folderId);
+  } catch (error) {
+    await removeUploadedFileFromRequest(req);
+    next(error);
+  }
+}
+
+export async function createFolder(req, res, next) {
+  try {
+    const name = req.body.name?.trim();
+    const parentId = req.body.parentId ? Number.parseInt(req.body.parentId, 10) : null;
+
+    if (!name || (parentId !== null && !Number.isInteger(parentId))) {
+      return res.status(400).send('A valid folder name and parent are required.');
+    }
+
+    if (parentId !== null) {
+      const parentFolder = await prisma.folder.findFirst({
+        where: { id: parentId, userId: req.user.id },
+        select: { id: true }
+      });
+
+      if (!parentFolder) {
+        return res.status(404).send('Parent folder not found.');
+      }
+    }
+
+    await prisma.folder.create({
+      data: {
+        name,
+        parentId,
+        userId: req.user.id
+      }
+    });
+
+    redirectToFolder(res, parentId);
+  } catch (error) {
+    next(error);
+  }
+}
 
 export async function loadFiles(req, res, next) {
     const currentFolderId = req.query.folderId ? parseInt(req.query.folderId) : null;
@@ -41,4 +159,70 @@ export async function loadFiles(req, res, next) {
       breadcrumbs, 
       currentFolderId 
     });
+}
+
+export async function renameItem(req, res, next) {
+  try {
+    const itemId = Number.parseInt(req.params.id, 10);
+    const name = req.body.name?.trim();
+
+    if (!Number.isInteger(itemId) || !name) {
+      return res.status(400).send('A valid item id and name are required.');
+    }
+
+    const model = getItemModel(req.params.itemType);
+    if (!model) {
+      return res.status(404).send('Item type not found.');
+    }
+
+    const item = await model.findFirst({
+      where: { id: itemId, userId: req.user.id }
+    });
+
+    if (!item) {
+      return res.status(404).send('Item not found.');
+    }
+
+    await model.update({
+      where: { id: itemId },
+      data: { name }
+    });
+
+    redirectToContainingFolder(res, item);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function deleteItem(req, res, next) {
+  try {
+    const itemId = Number.parseInt(req.params.id, 10);
+
+    if (!Number.isInteger(itemId)) {
+      return res.status(400).send('A valid item id is required.');
+    }
+
+    const model = getItemModel(req.params.itemType);
+    if (!model) {
+      return res.status(404).send('Item type not found.');
+    }
+
+    const item = await model.findFirst({
+      where: { id: itemId, userId: req.user.id }
+    });
+
+    if (!item) {
+      return res.status(404).send('Item not found.');
+    }
+
+    await model.delete({ where: { id: itemId } });
+
+    if (req.params.itemType === 'files') {
+      await removeUploadedFile(item.link);
+    }
+
+    redirectToContainingFolder(res, item);
+  } catch (error) {
+    next(error);
+  }
 }

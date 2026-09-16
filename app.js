@@ -43,6 +43,8 @@ app.use(passport.session());
 app.use(express.urlencoded({ extended: true }));
 
 app.use('/styles', express.static('styles')); 
+app.use('/scripts', express.static('public'));
+app.use('/uploads', express.static('uploads'));
 
 app.use('/', indexRouter);
 app.use('/folders', foldersRouter);

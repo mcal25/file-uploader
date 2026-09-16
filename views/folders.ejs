@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Your Drive</title>
+    <script src="/scripts/theme.js"></script>
     <!-- Modern font -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <!-- Stylesheets -->
@@ -11,21 +12,31 @@
 
 </head>
 <body>
+    <button class="theme-toggle" type="button" aria-label="Switch to dark mode" aria-pressed="false">
+        <span class="sun-icon" aria-hidden="true">☀</span>
+        <span class="moon-icon" aria-hidden="true">☾</span>
+    </button>
     <a href="/">Home</a>
     <h1>Your Drive</h1>
-    <h3>Upload</h3>
-
-    <form action="/folders/upload" enctype="multipart/form-data" method="POST">
-        <div class="form-group">
-            <input type="file" class="form-control-file" name="uploaded_file">
-            <input type="text" class="form-control" placeholder="placeholder" name="test_name">
-            <input id="file-upload-submit" type="submit" value="submit">
-        </div>
-    </form>
 
     <hr />
 
-    <h3>Folders</h3>
+    <div class="section-heading">
+        <h3>Folders</h3>
+    </div>
+    <div class="action-toolbar">
+        <form action="/folders/upload" enctype="multipart/form-data" method="POST" class="action-form upload-form">
+            <input type="hidden" name="folderId" value="<%= currentFolderId ?? '' %>">
+            <input type="file" name="uploaded_file" aria-label="Choose a file" required>
+            <input type="text" placeholder="File name (optional)" name="name" aria-label="File name (optional)">
+            <button id="file-upload-submit" type="submit">Upload file</button>
+        </form>
+        <form action="/folders/new-folder" method="POST" class="action-form new-folder-form">
+            <input type="hidden" name="parentId" value="<%= currentFolderId ?? '' %>">
+            <input type="text" name="name" placeholder="New folder name" aria-label="New folder name" required>
+            <button type="submit" class="new-folder-button">New folder</button>
+        </form>
+    </div>
     <nav class="breadcrumbs">
         <br>
         <a href="/folders">Root</a>

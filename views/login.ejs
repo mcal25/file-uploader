@@ -4,9 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Log In</title>
+    <script src="/scripts/theme.js"></script>
     <link rel="stylesheet" href="/styles/style.css">
 </head>
 <body>
+    <button class="theme-toggle" type="button" aria-label="Switch to dark mode" aria-pressed="false">
+        <span class="sun-icon" aria-hidden="true">☀</span>
+        <span class="moon-icon" aria-hidden="true">☾</span>
+    </button>
     <h1>Login</h1>
     <form action="/login" method="POST">
         <label for="username">username:</label>
