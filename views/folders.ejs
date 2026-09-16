@@ -12,11 +12,16 @@
 
 </head>
 <body>
-    <button class="theme-toggle" type="button" aria-label="Switch to dark mode" aria-pressed="false">
-        <span class="sun-icon" aria-hidden="true">☀</span>
-        <span class="moon-icon" aria-hidden="true">☾</span>
-    </button>
-    <a href="/">Home</a>
+    <nav class="top-nav" aria-label="Main navigation">
+        <a class="home-link" href="/">Home</a>
+        <div class="top-nav-actions">
+            <a class="logout-link" href="/logout">Log out</a>
+            <button class="theme-toggle" type="button" aria-label="Switch to dark mode" aria-pressed="false">
+                <span class="sun-icon" aria-hidden="true">☀</span>
+                <span class="moon-icon" aria-hidden="true">☾</span>
+            </button>
+        </div>
+    </nav>
     <h1>Your Drive</h1>
 
     <hr />

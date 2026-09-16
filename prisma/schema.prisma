@@ -12,12 +12,13 @@ datasource db {
 }
 
 model User {
-  id       Int      @id @default(autoincrement())
-  username String   @unique
-  email    String   @unique
-  password String
-  folders  Folder[]
-  files    File[]
+  id          Int       @id @default(autoincrement())
+  username    String    @unique
+  email       String    @unique
+  password    String
+  lastLoginAt DateTime? @map("last_login_at")
+  folders     Folder[]
+  files       File[]
 
   @@map("users")
 }

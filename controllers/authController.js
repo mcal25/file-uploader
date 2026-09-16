@@ -33,8 +33,26 @@ export async function signup(req, res, next) {
 
 export function login(req, res, next) {
   passport.authenticate("local", {
-    successRedirect: "/",
     failureRedirect: "/login",
+  }, (error, user) => {
+    if (error) return next(error);
+    if (!user) return res.redirect("/login");
+
+    req.logIn(user, async (loginError) => {
+      if (loginError) return next(loginError);
+
+      try {
+        const loginTime = new Date();
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { lastLoginAt: loginTime },
+        });
+        user.lastLoginAt = loginTime;
+        res.redirect("/");
+      } catch (updateError) {
+        next(updateError);
+      }
+    });
   })(req, res, next);
 }
 
