@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { loadSignup, loadFiles, doLogout, loadIndex, loadLogin, submitLogin, submitSignup } from "../controllers/indexController.js";
+import { loadSignup, doLogout, loadIndex, loadLogin, submitLogin, submitSignup } from "../controllers/indexController.js";
 
 export const indexRouter = Router();
 

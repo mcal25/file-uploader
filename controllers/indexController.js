@@ -51,9 +51,6 @@ export async function doLogout(req, res, next) {
   }));
 }
 
-export async function loadFiles(req, res, next) {
-  res.render('files');
-}
 
 passport.use(
   new LocalStrategy(async (username, password, done) => {

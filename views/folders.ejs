@@ -158,7 +158,7 @@
                 // Submit POST/PUT to your Express route (e.g. POST /folders/100/rename)
                 const form = document.createElement('form');
                 form.method = 'POST';
-                form.action = `/${activeItem.type}/${activeItem.id}/rename`;
+                form.action = `/folders/${activeItem.type}/${activeItem.id}/rename`;
                 
                 const input = document.createElement('input');
                 input.type = 'hidden';
@@ -179,7 +179,7 @@
                 // Submit POST to your Express route (e.g. POST /folders/15/delete)
                 const form = document.createElement('form');
                 form.method = 'POST';
-                form.action = `/${activeItem.type}/${activeItem.id}/delete`;
+                form.action = `/folders/${activeItem.type}/${activeItem.id}/delete`;
                 
                 document.body.appendChild(form);
                 form.submit();
