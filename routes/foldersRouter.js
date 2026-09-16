@@ -12,7 +12,7 @@ export const foldersRouter = Router();
 
 foldersRouter.get("/", loadFiles);
 
-foldersRouter.post("/upload", upload.single("uploaded_file"), handleUpload);
+foldersRouter.post("/upload", upload.array("uploaded_file", 1000), handleUpload);
 
 foldersRouter.post("/new-folder", createFolder);
 

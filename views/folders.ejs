@@ -25,17 +25,35 @@
         <h3>Folders</h3>
     </div>
     <div class="action-toolbar">
-        <form action="/folders/upload" enctype="multipart/form-data" method="POST" class="action-form upload-form">
+        <form id="upload-form" action="/folders/upload" enctype="multipart/form-data" method="POST" class="action-form upload-form">
             <input type="hidden" name="folderId" value="<%= currentFolderId ?? '' %>">
-            <input type="file" name="uploaded_file" aria-label="Choose a file" required>
-            <input type="text" placeholder="File name (optional)" name="name" aria-label="File name (optional)">
-            <button id="file-upload-submit" type="submit">Upload file</button>
+            <input id="file-picker" type="file" name="uploaded_file" multiple hidden>
+            <button id="file-upload-submit" type="button">Upload file</button>
         </form>
         <form action="/folders/new-folder" method="POST" class="action-form new-folder-form">
             <input type="hidden" name="parentId" value="<%= currentFolderId ?? '' %>">
             <input type="text" name="name" placeholder="New folder name" aria-label="New folder name" required>
             <button type="submit" class="new-folder-button">New folder</button>
         </form>
+    </div>
+
+    <div id="drop-overlay" class="drop-overlay" aria-hidden="true">
+        <div class="drop-message">
+            <strong>Drop files or folders to upload</strong>
+            <span>They will be added to this folder.</span>
+        </div>
+    </div>
+
+    <div id="upload-confirmation" class="upload-dialog" role="dialog" aria-modal="true" aria-labelledby="upload-dialog-title" hidden>
+        <div class="upload-dialog-content">
+            <h2 id="upload-dialog-title">Upload these items?</h2>
+            <p id="upload-summary"></p>
+            <div id="upload-file-list" class="upload-file-list"></div>
+            <div class="dialog-actions">
+                <button id="cancel-upload" type="button" class="secondary-button">Cancel</button>
+                <button id="confirm-upload" type="button">Upload</button>
+            </div>
+        </div>
     </div>
     <nav class="breadcrumbs">
         <br>
@@ -110,6 +128,172 @@
     </div>
 
     <script>
+        const uploadForm = document.getElementById('upload-form');
+        const filePicker = document.getElementById('file-picker');
+        const uploadButton = document.getElementById('file-upload-submit');
+        const dropOverlay = document.getElementById('drop-overlay');
+        const uploadConfirmation = document.getElementById('upload-confirmation');
+        const uploadSummary = document.getElementById('upload-summary');
+        const uploadFileList = document.getElementById('upload-file-list');
+        const cancelUpload = document.getElementById('cancel-upload');
+        const confirmUpload = document.getElementById('confirm-upload');
+        let pendingFiles = [];
+        let dragDepth = 0;
+
+        function formatSize(bytes) {
+            if (bytes < 1024) return `${bytes} B`;
+            const units = ['KB', 'MB', 'GB'];
+            let size = bytes / 1024;
+            let unit = 0;
+
+            while (size >= 1024 && unit < units.length - 1) {
+                size /= 1024;
+                unit += 1;
+            }
+
+            return `${size.toFixed(size >= 10 ? 0 : 1)} ${units[unit]}`;
+        }
+
+        function showUploadConfirmation(files) {
+            pendingFiles = files;
+            const folderPaths = new Set();
+            let totalSize = 0;
+
+            uploadFileList.replaceChildren();
+            files.forEach(({ file, path }) => {
+                totalSize += file.size;
+                const parts = path.split('/');
+                parts.pop();
+                for (let index = 1; index <= parts.length; index += 1) {
+                    folderPaths.add(parts.slice(0, index).join('/'));
+                }
+
+                const item = document.createElement('li');
+                item.textContent = `${path} (${formatSize(file.size)})`;
+                uploadFileList.appendChild(item);
+            });
+
+            uploadSummary.textContent = `${files.length} file${files.length === 1 ? '' : 's'} and ${folderPaths.size} folder${folderPaths.size === 1 ? '' : 's'} selected. Total size: ${formatSize(totalSize)}.`;
+            uploadConfirmation.hidden = false;
+            confirmUpload.focus();
+        }
+
+        function closeUploadConfirmation() {
+            uploadConfirmation.hidden = true;
+            pendingFiles = [];
+        }
+
+        function filesFromPicker(fileList) {
+            return Array.from(fileList).map((file) => ({
+                file,
+                path: file.webkitRelativePath || file.name
+            }));
+        }
+
+        async function readEntry(entry, parentPath = '') {
+            if (entry.isFile) {
+                const file = await new Promise((resolve, reject) => entry.file(resolve, reject));
+                return [{ file, path: `${parentPath}${file.name}` }];
+            }
+
+            const reader = entry.createReader();
+            const entries = [];
+            let batch;
+            do {
+                batch = await new Promise((resolve, reject) => reader.readEntries(resolve, reject));
+                entries.push(...batch);
+            } while (batch.length);
+
+            const files = [];
+            for (const child of entries) {
+                files.push(...await readEntry(child, `${parentPath}${entry.name}/`));
+            }
+            return files;
+        }
+
+        async function filesFromDrop(dataTransfer) {
+            const files = [];
+            const items = Array.from(dataTransfer.items || []);
+
+            for (const item of items) {
+                const entry = item.webkitGetAsEntry?.();
+                if (entry) {
+                    files.push(...await readEntry(entry));
+                } else if (item.kind === 'file') {
+                    const file = item.getAsFile();
+                    if (file) files.push({ file, path: file.name });
+                }
+            }
+
+            return files;
+        }
+
+        uploadButton.addEventListener('click', () => filePicker.click());
+        filePicker.addEventListener('change', () => {
+            const files = filesFromPicker(filePicker.files);
+            if (files.length) showUploadConfirmation(files);
+            filePicker.value = '';
+        });
+
+        ['dragenter', 'dragover'].forEach((eventName) => {
+            document.addEventListener(eventName, (event) => {
+                event.preventDefault();
+                dragDepth += 1;
+                dropOverlay.classList.add('visible');
+            });
+        });
+
+        ['dragleave'].forEach((eventName) => {
+            document.addEventListener(eventName, (event) => {
+                event.preventDefault();
+                dragDepth -= 1;
+                if (dragDepth <= 0) {
+                    dragDepth = 0;
+                    dropOverlay.classList.remove('visible');
+                }
+            });
+        });
+
+        document.addEventListener('drop', async (event) => {
+            event.preventDefault();
+            dragDepth = 0;
+            dropOverlay.classList.remove('visible');
+            const files = await filesFromDrop(event.dataTransfer);
+            if (files.length) showUploadConfirmation(files);
+        });
+
+        cancelUpload.addEventListener('click', closeUploadConfirmation);
+        uploadConfirmation.addEventListener('click', (event) => {
+            if (event.target === uploadConfirmation) closeUploadConfirmation();
+        });
+
+        confirmUpload.addEventListener('click', async () => {
+            confirmUpload.disabled = true;
+            confirmUpload.textContent = 'Uploading...';
+
+            const formData = new FormData();
+            formData.append('folderId', '<%= currentFolderId ?? "" %>');
+            pendingFiles.forEach(({ file, path }) => {
+                formData.append('uploaded_file', file, file.name);
+                formData.append('relativePaths', path);
+            });
+
+            try {
+                const response = await fetch('/folders/upload', {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Requested-With': 'fetch' }
+                });
+
+                if (!response.ok) throw new Error(await response.text());
+                window.location.reload();
+            } catch (error) {
+                alert(`Upload failed: ${error.message}`);
+                confirmUpload.disabled = false;
+                confirmUpload.textContent = 'Upload';
+            }
+        });
+
         const contextMenu = document.getElementById('context-menu');
         let activeItem = null; // Stores target item data { id, type, name }
 

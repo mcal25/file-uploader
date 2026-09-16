@@ -42,22 +42,22 @@ async function removeUploadedFile(link) {
   }
 }
 
-async function removeUploadedFileFromRequest(req) {
-  if (req.file) {
-    await removeUploadedFile(`/uploads/${req.file.filename}`);
+async function removeUploadedFilesFromRequest(req) {
+  for (const file of req.files || []) {
+    await removeUploadedFile(`/uploads/${file.filename}`);
   }
 }
 
 export async function handleUpload(req, res, next) {
   try {
-    if (!req.file) {
-      return res.status(400).send('A file is required.');
+    if (!req.files?.length) {
+      return res.status(400).send("At least one file is required.");
     }
 
     const folderId = req.body.folderId ? Number.parseInt(req.body.folderId, 10) : null;
 
     if (folderId !== null && !Number.isInteger(folderId)) {
-      await removeUploadedFileFromRequest(req);
+      await removeUploadedFilesFromRequest(req);
       return res.status(400).send('A valid folder is required.');
     }
 
@@ -68,24 +68,66 @@ export async function handleUpload(req, res, next) {
       });
 
       if (!folder) {
-        await removeUploadedFileFromRequest(req);
+        await removeUploadedFilesFromRequest(req);
         return res.status(404).send('Folder not found.');
       }
     }
 
-    await prisma.file.create({
-      data: {
-        name: req.body.name?.trim() || req.file.originalname,
-        link: `/uploads/${req.file.filename}`,
-        size: req.file.size,
-        userId: req.user.id,
-        folderId
-      }
-    });
+    const relativePaths = Array.isArray(req.body.relativePaths)
+      ? req.body.relativePaths
+      : [req.body.relativePaths];
+    const folderCache = new Map();
 
-    redirectToFolder(res, folderId);
+    async function getFolderId(relativePath) {
+      const parts = relativePath.split('/').filter(Boolean).slice(0, -1);
+      let parentId = folderId;
+
+      for (const part of parts) {
+        const cacheKey = `${parentId ?? 'root'}/${part}`;
+        if (folderCache.has(cacheKey)) {
+          parentId = folderCache.get(cacheKey);
+          continue;
+        }
+
+        let folder = await prisma.folder.findFirst({
+          where: { name: part, parentId, userId: req.user.id },
+          select: { id: true }
+        });
+
+        if (!folder) {
+          folder = await prisma.folder.create({
+            data: { name: part, parentId, userId: req.user.id },
+            select: { id: true }
+          });
+        }
+
+        parentId = folder.id;
+        folderCache.set(cacheKey, parentId);
+      }
+
+      return parentId;
+    }
+
+    for (const [index, file] of req.files.entries()) {
+      const relativePath = relativePaths[index] || file.originalname;
+      await prisma.file.create({
+        data: {
+          name: file.originalname,
+          link: `/uploads/${file.filename}`,
+          size: file.size,
+          userId: req.user.id,
+          folderId: await getFolderId(relativePath)
+        }
+      });
+    }
+
+    if (req.accepts('html')) {
+      redirectToFolder(res, folderId);
+    } else {
+      res.json({ uploaded: req.files.length });
+    }
   } catch (error) {
-    await removeUploadedFileFromRequest(req);
+    await removeUploadedFilesFromRequest(req);
     next(error);
   }
 }
