@@ -188,12 +188,6 @@ nav span {
 .context-menu button:hover {
   background: #f0f4ff;
 }
-.context-menu button.danger {
-  color: #ef4444;
-}
-.context-menu button.danger:hover {
-  background: #fef2f2;
-}
 
 /* Forms */
 form {
@@ -254,12 +248,6 @@ button {
 button[type="submit"]:hover,
 button:hover {
   background: #2563eb;
-}
-button.danger {
-  background: #ef4444;
-}
-button.danger:hover {
-  background: #dc2626;
 }
 
 /* Utilities */
