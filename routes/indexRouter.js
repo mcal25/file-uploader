@@ -1,14 +1,15 @@
 import { Router } from "express";
-import { loadSignup, doLogout, loadIndex, loadLogin, submitLogin, submitSignup } from "../controllers/indexController.js";
+import { showHome } from "../controllers/homeController.js";
+import { login, logout, showLogin, showSignup, signup } from "../controllers/authController.js";
 
 export const indexRouter = Router();
 
-indexRouter.get('/', loadIndex);
+indexRouter.get("/", showHome);
 
-indexRouter.get('/signup', loadSignup);
-indexRouter.post('/signup', submitSignup);
+indexRouter.get("/signup", showSignup);
+indexRouter.post("/signup", signup);
 
-indexRouter.get('/login', loadLogin);
-indexRouter.post('/login', submitLogin);
+indexRouter.get("/login", showLogin);
+indexRouter.post("/login", login);
 
-indexRouter.get('/logout', doLogout);
+indexRouter.get("/logout", logout);

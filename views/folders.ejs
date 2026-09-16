@@ -128,7 +128,9 @@
     </div>
 
     <script>
-        const uploadForm = document.getElementById('upload-form');
+        // The context menu is shared by folder and file cards. The card tells
+        // us which REST endpoint to submit to, while the server still checks
+        // ownership before changing anything.
         const filePicker = document.getElementById('file-picker');
         const uploadButton = document.getElementById('file-upload-submit');
         const dropOverlay = document.getElementById('drop-overlay');
@@ -184,6 +186,8 @@
         }
 
         function filesFromPicker(fileList) {
+            // A normal picker gives us File objects. A directory picker may
+            // also provide webkitRelativePath, which preserves its folders.
             return Array.from(fileList).map((file) => ({
                 file,
                 path: file.webkitRelativePath || file.name
@@ -191,6 +195,8 @@
         }
 
         async function readEntry(entry, parentPath = '') {
+            // The browser exposes dropped folders as directory entries. Read
+            // each directory in batches, then recurse into child directories.
             if (entry.isFile) {
                 const file = await new Promise((resolve, reject) => entry.file(resolve, reject));
                 return [{ file, path: `${parentPath}${file.name}` }];
@@ -212,6 +218,8 @@
         }
 
         async function filesFromDrop(dataTransfer) {
+            // DataTransferItem is used instead of dataTransfer.files because
+            // it lets us distinguish and recursively inspect dropped folders.
             const files = [];
             const items = Array.from(dataTransfer.items || []);
 
@@ -353,7 +361,10 @@
                 // Submit POST/PUT to your Express route (e.g. POST /folders/100/rename)
                 const form = document.createElement('form');
                 form.method = 'POST';
-                form.action = `/folders/${activeItem.type}/${activeItem.id}/rename`;
+                const itemPath = activeItem.type === 'folders'
+                    ? `/folders/${activeItem.id}`
+                    : `/folders/files/${activeItem.id}`;
+                form.action = `${itemPath}/rename`;
                 
                 const input = document.createElement('input');
                 input.type = 'hidden';
@@ -374,7 +385,10 @@
                 // Submit POST to your Express route (e.g. POST /folders/15/delete)
                 const form = document.createElement('form');
                 form.method = 'POST';
-                form.action = `/folders/${activeItem.type}/${activeItem.id}/delete`;
+                const itemPath = activeItem.type === 'folders'
+                    ? `/folders/${activeItem.id}`
+                    : `/folders/files/${activeItem.id}`;
+                form.action = `${itemPath}/delete`;
                 
                 document.body.appendChild(form);
                 form.submit();

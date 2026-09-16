@@ -1,20 +1,19 @@
 import { Router } from "express";
-import {
-  createFolder,
-  deleteItem,
-  handleUpload,
-  loadFiles,
-  renameItem,
-  upload,
-} from "../controllers/foldersController.js";
+import { createFolder, deleteFolder, renameFolder, showFolder } from "../controllers/foldersController.js";
+import { deleteFile, renameFile, uploadFiles } from "../controllers/filesController.js";
+import { upload } from "../lib/fileUpload.js";
+import { requireAuth } from "../middleware/requireAuth.js";
 
 export const foldersRouter = Router();
 
-foldersRouter.get("/", loadFiles);
+foldersRouter.use(requireAuth);
 
-foldersRouter.post("/upload", upload.array("uploaded_file", 1000), handleUpload);
+foldersRouter.get("/", showFolder);
+foldersRouter.post("/upload", upload.array("uploaded_file", 1000), uploadFiles);
 
 foldersRouter.post("/new-folder", createFolder);
 
-foldersRouter.post("/:itemType/:id/rename", renameItem);
-foldersRouter.post("/:itemType/:id/delete", deleteItem);
+foldersRouter.post("/:id/rename", renameFolder);
+foldersRouter.post("/:id/delete", deleteFolder);
+foldersRouter.post("/files/:id/rename", renameFile);
+foldersRouter.post("/files/:id/delete", deleteFile);

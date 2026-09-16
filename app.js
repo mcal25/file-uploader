@@ -1,65 +1,61 @@
-import dotenv from 'dotenv';
-dotenv.config();
+import "dotenv/config";
 
 import express from "express";
-import path from "node:path"
-import { fileURLToPath } from 'node:url';
-import bcrypt from "bcryptjs";
-import session from 'express-session';
-import passport from 'passport';
-import { Strategy } from 'passport-local';
-import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '@prisma/client';
-import { PrismaSessionStore } from '@quixo3/prisma-session-store';
-import { indexRouter } from './routes/indexRouter.js';
-import { foldersRouter } from './routes/foldersRouter.js';
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import session from "express-session";
+import passport from "passport";
+import { PrismaSessionStore } from "@quixo3/prisma-session-store";
+import { configurePassport } from "./config/passport.js";
+import { prisma } from "./lib/prisma.js";
+import { indexRouter } from "./routes/indexRouter.js";
+import { foldersRouter } from "./routes/foldersRouter.js";
 
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const connectionString = `${process.env.DATABASE_URL}`;
-const adapter = new PrismaPg({ connectionString });
-const prisma = new PrismaClient({ adapter });
+
+configurePassport();
 
 app.use(
   session({
     cookie: {
-     maxAge: 7 * 24 * 60 * 60 * 1000 // ms
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     },
-    secret: 'a santa at nasa',
+    // Set SESSION_SECRET in .env for real deployments. The fallback keeps a
+    // fresh local checkout runnable while making the limitation explicit.
+    secret: process.env.SESSION_SECRET || "development-only-session-secret",
     resave: false,
     saveUninitialized: false,
-    store: new PrismaSessionStore(
-      prisma,
-      {
-        checkPeriod: 2 * 60 * 1000,  //ms
-        dbRecordIdIsSessionId: true,
-        dbRecordIdFunction: undefined,
-      }
-    )
+    store: new PrismaSessionStore(prisma, {
+      checkPeriod: 2 * 60 * 1000,
+      dbRecordIdIsSessionId: true,
+    }),
   })
 );
+
+app.use(passport.initialize());
 app.use(passport.session());
 app.use(express.urlencoded({ extended: true }));
 
-app.use('/styles', express.static('styles')); 
-app.use('/scripts', express.static('public'));
-app.use('/uploads', express.static('uploads'));
-
-app.use('/', indexRouter);
-app.use('/folders', foldersRouter);
+app.use("/styles", express.static(path.join(__dirname, "styles")));
+app.use("/scripts", express.static(path.join(__dirname, "public")));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "ejs");
 
-app.use((req, res, next) => {
-    res.locals.currentUser = req.user
-    next();
+app.use("/", indexRouter);
+app.use("/folders", foldersRouter);
+
+// This error handler keeps unexpected server errors from becoming an
+// unhelpful blank response while still logging the useful stack trace.
+app.use((error, req, res, next) => {
+  console.error(error);
+  res.status(500).send("Something went wrong.");
 });
 
-app.listen(3000, (error) => {
-    if (error) {
-        throw error;
-    }
-    console.log('Listening on port 3000');
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`Listening on port ${port}`);
 });
