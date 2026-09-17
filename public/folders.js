@@ -120,7 +120,7 @@ function openContextMenu(event, itemNode) {
   contextMenu.dataset.activeId = itemNode.dataset.id;
   contextMenu.dataset.activeName = itemNode.dataset.name;
   console.log(itemNode.dataset);
-  downloadButton.hidden = itemNode.dataset.type !== "files";
+  downloadButton.hidden = false;
 
   const menuWidth = 160;
   const menuHeight = 90;
@@ -154,9 +154,10 @@ function submitItemAction(action) {
   }
 
   if (action === "download") {
-    if (type === "files") {
-      window.location.assign(`/folders/files/${id}/download`);
-    }
+    const downloadPath = type === "folders"
+      ? `/folders/${id}/download`
+      : `/folders/files/${id}/download`;
+    window.location.assign(downloadPath);
     return closeContextMenu();
   }
 

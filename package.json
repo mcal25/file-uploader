@@ -7,7 +7,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node --watch app.js",
-    "dev": "npm run start"    
+    "dev": "npm run start"
   },
   "repository": {
     "type": "git",
@@ -23,6 +23,7 @@
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
     "@quixo3/prisma-session-store": "^3.1.21",
+    "archiver": "^8.0.0",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
     "ejs": "^6.0.1",

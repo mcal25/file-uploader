@@ -1,5 +1,7 @@
+import { ZipArchive } from "archiver";
+
 import { prisma } from "../lib/prisma.js";
-import { removeStoredFile } from "../lib/fileStorage.js";
+import { getStoredFilePath, removeStoredFile } from "../lib/fileStorage.js";
 import { parseId } from "../lib/validation.js";
 
 function redirectToFolder(res, folderId) {
@@ -118,6 +120,54 @@ export async function renameFolder(req, res, next) {
   }
 }
 
+export async function downloadFolder(req, res, next) {
+  try {
+    const folderId = parseId(req.params.id);
+    if (!Number.isInteger(folderId)) {
+      return res.status(400).send("A valid folder id is required.");
+    }
+
+    const folder = await findOwnedFolder(folderId, req.user.id);
+    if (!folder) return res.status(404).send("Folder not found.");
+
+    const folders = await prisma.folder.findMany({
+      where: { userId: req.user.id },
+      select: { id: true, name: true, parentId: true },
+    });
+    const descendantIds = findDescendantIds(folderId, folders);
+    const files = await prisma.file.findMany({
+      where: { userId: req.user.id, folderId: { in: [...descendantIds] } },
+      select: { name: true, link: true, folderId: true },
+    });
+    const folderById = new Map(folders.map((item) => [item.id, item]));
+    const archive = new ZipArchive();
+
+    res.attachment(`${folder.name}.zip`);
+    archive.on("error", (error) => {
+      if (res.headersSent) return res.destroy(error);
+      next(error);
+    });
+    archive.pipe(res);
+
+    for (const descendantId of descendantIds) {
+      archive.append(Buffer.alloc(0), { name: `${getArchivePath(descendantId, folderId, folderById)}/` });
+    }
+
+    for (const file of files) {
+      const filePath = getStoredFilePath(file.link);
+      if (!filePath) continue;
+
+      archive.file(filePath, {
+        name: `${getArchivePath(file.folderId, folderId, folderById)}/${file.name}`,
+      });
+    }
+
+    return archive.finalize();
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function deleteFolder(req, res, next) {
   try {
     const folderId = parseId(req.params.id);
@@ -169,4 +219,20 @@ function findDescendantIds(folderId, folders) {
   }
 
   return descendantIds;
+}
+
+function getArchivePath(folderId, rootFolderId, foldersById) {
+  const path = [];
+  let currentId = folderId;
+
+  while (currentId !== null) {
+    const folder = foldersById.get(currentId);
+    if (!folder) break;
+
+    path.unshift(folder.name);
+    if (currentId === rootFolderId) break;
+    currentId = folder.parentId;
+  }
+
+  return path.join("/");
 }

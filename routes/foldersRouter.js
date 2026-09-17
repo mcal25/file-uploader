@@ -1,5 +1,11 @@
 import { Router } from "express";
-import { createFolder, deleteFolder, renameFolder, showFolder } from "../controllers/foldersController.js";
+import {
+	createFolder,
+	deleteFolder,
+	downloadFolder,
+	renameFolder,
+	showFolder,
+} from "../controllers/foldersController.js";
 import {
 	deleteFile,
 	downloadFile,
@@ -20,6 +26,7 @@ foldersRouter.post("/new-folder", createFolder);
 
 foldersRouter.post("/:id/rename", renameFolder);
 foldersRouter.post("/:id/delete", deleteFolder);
+foldersRouter.get("/:id/download", downloadFolder);
 foldersRouter.get("/files/:id/download", downloadFile);
 foldersRouter.post("/files/:id/rename", renameFile);
 foldersRouter.post("/files/:id/delete", deleteFile);
