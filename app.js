@@ -1,6 +1,7 @@
 import "dotenv/config";
 
 import express from "express";
+import multer from "multer";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import session from "express-session";
@@ -52,6 +53,11 @@ app.use("/folders", foldersRouter);
 // unhelpful blank response while still logging the useful stack trace.
 app.use((error, req, res, next) => {
   console.error(`Error handling ${req.method} ${req.originalUrl}:`, error);
+
+  if (error instanceof multer.MulterError && error.code === "LIMIT_FILE_SIZE") {
+    return res.status(413).send("Each file must be 5 MB or smaller.");
+  }
+
   res.status(500).send("Something went wrong.");
 });
 

@@ -44,8 +44,6 @@ export async function showFolder(req, res, next) {
       }),
     ]);
 
-    // console.log(files);
-
     const breadcrumbs = [];
     let folder = currentFolderId === null
       ? null
@@ -59,7 +57,7 @@ export async function showFolder(req, res, next) {
         ? null
         : await findOwnedFolder(folder.parentId, req.user.id);
     }
-    // console.log(files);
+
     res.render("folders", {
       folders,
       files,
@@ -67,8 +65,6 @@ export async function showFolder(req, res, next) {
       currentFolderId,
       user: req.user,
     });
-    console.log(files);
-    // Object.values()
   } catch (error) {
     next(error);
   }
