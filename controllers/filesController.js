@@ -1,5 +1,6 @@
 import { prisma } from "../lib/prisma.js";
 import { removeStoredFile, removeUploadedFiles } from "../lib/fileStorage.js";
+import { parseId } from "../lib/validation.js";
 
 function redirectToFolder(res, folderId) {
   const location = folderId === null ? "/folders" : `/folders?folderId=${folderId}`;
@@ -15,7 +16,7 @@ async function findOwnedFolder(folderId, userId) {
   });
 }
 
-async function getOrCreateFolderPath(relativePath, startingFolderId, userId, folderCache) {
+async function getOrCreateFolderPath(db, relativePath, startingFolderId, userId, folderCache) {
   // A dropped folder arrives as a path such as "Photos/2026/image.jpg".
   // We create or reuse each folder in that path, from left to right.
   const folderNames = relativePath.split("/").filter(Boolean).slice(0, -1);
@@ -28,13 +29,13 @@ async function getOrCreateFolderPath(relativePath, startingFolderId, userId, fol
       continue;
     }
 
-    let folder = await prisma.folder.findFirst({
+    let folder = await db.folder.findFirst({
       where: { name: folderName, parentId, userId },
       select: { id: true },
     });
 
     if (!folder) {
-      folder = await prisma.folder.create({
+      folder = await db.folder.create({
         data: { name: folderName, parentId, userId },
         select: { id: true },
       });
@@ -50,13 +51,13 @@ async function getOrCreateFolderPath(relativePath, startingFolderId, userId, fol
 export async function uploadFiles(req, res, next) {
   try {
     const files = req.files || [];
-    const folderId = req.body.folderId ? Number.parseInt(req.body.folderId, 10) : null;
+    const folderId = parseId(req.body.folderId);
 
     if (!files.length) {
       return res.status(400).send("At least one file is required.");
     }
 
-    if (folderId !== null && !Number.isInteger(folderId)) {
+    if (req.body.folderId && folderId === null) {
       await removeUploadedFiles(files);
       return res.status(400).send("A valid folder is required.");
     }
@@ -71,25 +72,28 @@ export async function uploadFiles(req, res, next) {
       : [req.body.relativePaths];
     const folderCache = new Map();
 
-    for (const [index, file] of files.entries()) {
-      const relativePath = relativePaths[index] || file.originalname;
-      const destinationFolderId = await getOrCreateFolderPath(
-        relativePath,
-        folderId,
-        req.user.id,
-        folderCache
-      );
+    await prisma.$transaction(async (db) => {
+      for (const [index, file] of files.entries()) {
+        const relativePath = relativePaths[index] || file.originalname;
+        const destinationFolderId = await getOrCreateFolderPath(
+          db,
+          relativePath,
+          folderId,
+          req.user.id,
+          folderCache
+        );
 
-      await prisma.file.create({
-        data: {
-          name: file.originalname,
-          link: `/uploads/${file.filename}`,
-          size: file.size,
-          userId: req.user.id,
-          folderId: destinationFolderId,
-        },
-      });
-    }
+        await db.file.create({
+          data: {
+            name: file.originalname,
+            link: `/uploads/${file.filename}`,
+            size: file.size,
+            userId: req.user.id,
+            folderId: destinationFolderId,
+          },
+        });
+      }
+    });
 
     // The browser upload uses fetch and reloads the page itself. A normal HTML
     // form still gets the simpler redirect behavior.
@@ -106,7 +110,7 @@ export async function uploadFiles(req, res, next) {
 
 export async function renameFile(req, res, next) {
   try {
-    const fileId = Number.parseInt(req.params.id, 10);
+    const fileId = parseId(req.params.id);
     const name = req.body.name?.trim();
 
     if (!Number.isInteger(fileId) || !name) {
@@ -132,7 +136,7 @@ export async function renameFile(req, res, next) {
 
 export async function deleteFile(req, res, next) {
   try {
-    const fileId = Number.parseInt(req.params.id, 10);
+    const fileId = parseId(req.params.id);
     if (!Number.isInteger(fileId)) {
       return res.status(400).send("A valid file id is required.");
     }

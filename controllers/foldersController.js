@@ -1,12 +1,6 @@
 import { prisma } from "../lib/prisma.js";
 import { removeStoredFile } from "../lib/fileStorage.js";
-
-function parseFolderId(value) {
-  if (value === undefined || value === "") return null;
-
-  const folderId = Number.parseInt(value, 10);
-  return Number.isInteger(folderId) ? folderId : null;
-}
+import { parseId } from "../lib/validation.js";
 
 function redirectToFolder(res, folderId) {
   const location = folderId === null ? "/folders" : `/folders?folderId=${folderId}`;
@@ -24,7 +18,7 @@ async function findOwnedFolder(folderId, userId) {
 
 export async function showFolder(req, res, next) {
   try {
-    const currentFolderId = parseFolderId(req.query.folderId);
+    const currentFolderId = parseId(req.query.folderId);
 
     if (req.query.folderId && currentFolderId === null) {
       return res.status(400).send("A valid folder id is required.");
@@ -48,6 +42,8 @@ export async function showFolder(req, res, next) {
       }),
     ]);
 
+    // console.log(files);
+
     const breadcrumbs = [];
     let folder = currentFolderId === null
       ? null
@@ -61,13 +57,16 @@ export async function showFolder(req, res, next) {
         ? null
         : await findOwnedFolder(folder.parentId, req.user.id);
     }
-
+    // console.log(files);
     res.render("folders", {
       folders,
       files,
       breadcrumbs,
       currentFolderId,
+      user: req.user,
     });
+    console.log(files);
+    // Object.values()
   } catch (error) {
     next(error);
   }
@@ -76,7 +75,7 @@ export async function showFolder(req, res, next) {
 export async function createFolder(req, res, next) {
   try {
     const name = req.body.name?.trim();
-    const parentId = parseFolderId(req.body.parentId);
+    const parentId = parseId(req.body.parentId);
 
     if (!name || (req.body.parentId && parentId === null)) {
       return res.status(400).send("A valid folder name and parent are required.");
@@ -98,7 +97,7 @@ export async function createFolder(req, res, next) {
 
 export async function renameFolder(req, res, next) {
   try {
-    const folderId = Number.parseInt(req.params.id, 10);
+    const folderId = parseId(req.params.id);
     const name = req.body.name?.trim();
 
     if (!Number.isInteger(folderId) || !name) {
@@ -121,7 +120,7 @@ export async function renameFolder(req, res, next) {
 
 export async function deleteFolder(req, res, next) {
   try {
-    const folderId = Number.parseInt(req.params.id, 10);
+    const folderId = parseId(req.params.id);
     if (!Number.isInteger(folderId)) {
       return res.status(400).send("A valid folder id is required.");
     }
@@ -136,18 +135,7 @@ export async function deleteFolder(req, res, next) {
       where: { userId: req.user.id },
       select: { id: true, parentId: true },
     });
-    const descendantIds = new Set([folderId]);
-
-    let foundNewDescendant = true;
-    while (foundNewDescendant) {
-      foundNewDescendant = false;
-      for (const candidate of allFolders) {
-        if (candidate.parentId !== null && descendantIds.has(candidate.parentId) && !descendantIds.has(candidate.id)) {
-          descendantIds.add(candidate.id);
-          foundNewDescendant = true;
-        }
-      }
-    }
+    const descendantIds = findDescendantIds(folderId, allFolders);
 
     const files = await prisma.file.findMany({
       where: { userId: req.user.id, folderId: { in: [...descendantIds] } },
@@ -163,4 +151,22 @@ export async function deleteFolder(req, res, next) {
   } catch (error) {
     next(error);
   }
+}
+
+function findDescendantIds(folderId, folders) {
+  const descendantIds = new Set([folderId]);
+  const foldersToVisit = [folderId];
+
+  while (foldersToVisit.length) {
+    const parentId = foldersToVisit.pop();
+
+    for (const folder of folders) {
+      if (folder.parentId === parentId && !descendantIds.has(folder.id)) {
+        descendantIds.add(folder.id);
+        foldersToVisit.push(folder.id);
+      }
+    }
+  }
+
+  return descendantIds;
 }

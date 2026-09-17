@@ -51,7 +51,7 @@ app.use("/folders", foldersRouter);
 // This error handler keeps unexpected server errors from becoming an
 // unhelpful blank response while still logging the useful stack trace.
 app.use((error, req, res, next) => {
-  console.error(error);
+  console.error(`Error handling ${req.method} ${req.originalUrl}:`, error);
   res.status(500).send("Something went wrong.");
 });
 

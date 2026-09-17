@@ -12,9 +12,9 @@
         <span class="sun-icon" aria-hidden="true">☀</span>
         <span class="moon-icon" aria-hidden="true">☾</span>
     </button>
-    <div class="index-parent-div">
+    <div class="index-parent-div rainbow-panel">
         <% if (locals.user) { %>
-            <h1 class="index-main-heading"> Logged in as <%= user.username %></h1>
+            <h1 class="index-main-heading">Logged in as <span class="username"><%= user.username %></span></h1>
             <div class="index-actions">
                 <a href="/folders"><button>Your drive</button></a>
                 <a href="/logout"><button id="index-logout-button">Log Out</button></a>
