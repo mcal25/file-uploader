@@ -161,6 +161,10 @@ function submitItemAction(action) {
     return closeContextMenu();
   }
 
+  if (action === "sharelink") {
+    
+  }
+
   const form = document.createElement("form");
   form.method = "POST";
   form.action = type === "folders"
