@@ -115,9 +115,12 @@ function openContextMenu(event, itemNode) {
   event.stopPropagation();
 
   const contextMenu = document.getElementById("context-menu");
+  const downloadButton = document.getElementById("menu-download");
   contextMenu.dataset.activeType = itemNode.dataset.type;
   contextMenu.dataset.activeId = itemNode.dataset.id;
   contextMenu.dataset.activeName = itemNode.dataset.name;
+  console.log(itemNode.dataset);
+  downloadButton.hidden = itemNode.dataset.type !== "files";
 
   const menuWidth = 160;
   const menuHeight = 90;
@@ -147,6 +150,13 @@ function submitItemAction(action) {
   }
 
   if (action === "delete" && !confirm(`Are you sure you want to delete "${name}"?`)) {
+    return closeContextMenu();
+  }
+
+  if (action === "download") {
+    if (type === "files") {
+      window.location.assign(`/folders/files/${id}/download`);
+    }
     return closeContextMenu();
   }
 
@@ -251,3 +261,4 @@ document.addEventListener("keydown", (event) => {
 
 document.getElementById("menu-rename").addEventListener("click", () => submitItemAction("rename"));
 document.getElementById("menu-delete").addEventListener("click", () => submitItemAction("delete"));
+document.getElementById("menu-download").addEventListener("click", () => submitItemAction("download"));

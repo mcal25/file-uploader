@@ -420,6 +420,9 @@ nav span {
   border-radius: 0;
   transition: background 0.1s ease;
 }
+.context-menu button[hidden] {
+  display: none;
+}
 .context-menu button:hover {
   background: var(--hover);
 }

@@ -1,5 +1,9 @@
 import { prisma } from "../lib/prisma.js";
-import { removeStoredFile, removeUploadedFiles } from "../lib/fileStorage.js";
+import {
+  getStoredFilePath,
+  removeStoredFile,
+  removeUploadedFiles,
+} from "../lib/fileStorage.js";
 import { parseId } from "../lib/validation.js";
 
 function redirectToFolder(res, folderId) {
@@ -129,6 +133,30 @@ export async function renameFile(req, res, next) {
     });
 
     redirectToFolder(res, file.folderId);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function downloadFile(req, res, next) {
+  try {
+    const fileId = parseId(req.params.id);
+    if (!Number.isInteger(fileId)) {
+      return res.status(400).send("A valid file id is required.");
+    }
+
+    const file = await prisma.file.findFirst({
+      where: { id: fileId, userId: req.user.id },
+    });
+
+    if (!file) return res.status(404).send("File not found.");
+
+    const filePath = getStoredFilePath(file.link);
+    if (!filePath) return res.status(404).send("Stored file not found.");
+
+    return res.download(filePath, file.name, (error) => {
+      if (error && !res.headersSent) next(error);
+    });
   } catch (error) {
     next(error);
   }
